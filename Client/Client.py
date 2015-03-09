@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import socket
 import json
+import time
+from MessageReceiver import MessageListener
 
 
 class Client:
@@ -19,41 +21,67 @@ class Client:
 
 
 		#MessageReceiver(Thread)
-
-		self.run()
+		self.login()
+		
 
 
 
 	# TODO: Finish init process with necessary code
 
-	def login(self, connection):
-		username = 'ola'
-		login_dict = {'request': 'login', 'content': username} #Skal man bruke <> eller '' ? 
-		json_login = json.dumps(login_dict)
+	def login(self):
+		print'Trying to connect'
+		self.connection.connect((self.host, self.server_port))
+		loged_in = False
+		while not loged_in:
+			username = raw_input("Enter username: ")
+			login_dict = {'request': 'login', 'content': username} #Skal man bruke <> eller '' ? 
+			print'Sending json msg'
+			json_login = json.dumps(login_dict)
+			self.connection.send(json_login)
 
-		self.connection.send(json_login)
+			json_login_response = self.connection.recv(1024)
+			login_response = json.loads(json_login_response)
+			if login_response['response'] == 'history':
+				loged_in = True
+				print 'Successful login'
+
 
 
 	def run(self):
 	# Initiate the connection to the server
-		print'Trying to connect'
-		self.connection.connect((self.host, self.server_port))
+		self.msgListener = MessageListener(self, self.connection)
+		time.sleep(1)
+		self.msgListener.run()
 
-		username = 'ola'
-		login_dict = {'request': 'login', 'content': username} #Skal man bruke <> eller '' ? 
-		print'Sending json msg'
-		json_login = json.dumps(login_dict)
-		self.connection.send(json_login)
+		while True:
+			from_user = raw_input("Type message: ")
+			from_user_list = from_user.split()
+			if from_user_list[0] == 'names':
+				payload_dict = {'request': 'name', 'content': None}
+				json_payload= json.dumps(payload_dict)
+				self.connection.send(json_payload)
+			elif from_user_list[0] == 'help':
+				payload_dict = {'request': 'help', 'content': None}
+				json_payload= json.dumps(payload_dict)
+				self.connection.send(json_payload)
+			elif from_user_list[0] == 'logout':
+				payload_dict = {'request': 'logout', 'content': None}
+				json_payload= json.dumps(payload_dict)
+				self.connection.send(json_payload)
+			elif from_user_list[0] == 'msg':
+				payload_dict = {'request': 'msg', 'content': from_user_list[1:(length(from_user_list)-1)]}
+				json_payload= json.dumps(payload_dict)
+				self.connection.send(json_payload)
+			else:
+				print 'invalid input'
 
-		json_login_response = self.connection.recv(1024)
-		login_response = json.loads(json_login_response)
-		print 'Successful login'
 
 
 
-
+	
 	# def disconnect(self):
 	# # TODO: Handle disconnection
+	# loged_in = False
 	# pass
 
 	# def receive_message(self, message):
@@ -72,5 +100,6 @@ if __name__ == '__main__':
 	No alterations is necessary
 	"""
 
-	client = Client('localhost', 9996)
-	#client.run()
+	client = Client('129.241.187.108', 9996)
+	client.run()
+
