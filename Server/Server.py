@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import SocketServer
-
+import json, time
 
 class ClientHandler(SocketServer.BaseRequestHandler):
     """
@@ -10,19 +10,73 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     logic for the server, you must write it outside this class
     """
 
+
+    # Shared by all clientHandlers:
+    activeClients = {}
+    validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
+    msgHistory == []
+
+    def transmit(self, message, sender):
+        replyPacket = {"timestamp": time.time(), "sender": sender, "response": "message", "content": message}
+        self.connection.send(json.dumps(replyPacket))
+
     def handle(self):
         """
         This method handles the connection between a client and the server.
         """
+        self.username = ""
         self.ip = self.client_address[0]
         self.port = self.client_address[1]
         self.connection = self.request
-
+        print 'Hello ', self.ip, '!\n'
         # Loop that listens for messages from the client
         while True:
             received_string = self.connection.recv(4096)
+            packet = json.loads(received_string)
+            if packet["request"] == "login":
+                newUsername = packet["content"]
+                if newUsername in activeClients:
+                    replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "error", "content": "Username already taken!"}
+                    self.connection.send(json.dumps(replyPacket))
+                else:
+                    valid = True
+                    for letter in newUsername:
+                        if letter not in validChars:
+                            valid = False
+                            break
+
+                    if valid:
+                        self.username = newUsername
+                        activeClients[self.username] = self
+                        replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "history", "content": msgHistory}
+                        self.connection.send(json.dumps(replyPacket))
+                    else:
+                        replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "error", "content": "Invalid username!"}
+                        self.connection.send(json.dumps(replyPacket))
             
+            else if packet["request"] == "logout":
+                del activeClients[self.username]
+                del self
+
+            else if packet["request"] == "msg":
+                msgHistory.append(self.username + ": " + packet["content"])
+                for client in activeClients:
+                    activeClients[client].transmit( packet["content"], self.username )
+
+            else if packet["request"] == "names":
+                usernames = []
+                for client in activeClients:
+                    usernames.append(client)
+                replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "info", "content": usernames}
+                self.connection.send(json.dumps(replyPacket))
+                
+            else if packet["request"] == "help":
+                helpMsg = "Some info"
+                replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "info", "content": helpMsg}
+                self.connection.send(json.dumps(replyPacket))
+
             # TODO: Add handling of received payload from client
+
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
