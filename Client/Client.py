@@ -43,8 +43,12 @@ class Client:
 		login_dict = {'request': 'login', 'content': username} #Skal man bruke <> eller '' ? 
 		print'Sending json msg'
 		json_login = json.dumps(login_dict)
-
 		self.connection.send(json_login)
+
+		json_login_response = self.connection.recv(1024)
+		login_response = json.loads(json_login_response)
+		print 'Successful login'
+
 
 
 
@@ -68,5 +72,5 @@ if __name__ == '__main__':
 	No alterations is necessary
 	"""
 
-	client = Client('localhost', 11991)
+	client = Client('localhost', 9996)
 	#client.run()
