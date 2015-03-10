@@ -32,6 +32,8 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         # Loop that listens for messages from the client
         while True:
             received_string = self.connection.recv(4096)
+            if !received_string:
+                continue
             packet = json.loads(received_string)
             if packet["request"] == "login":
                 newUsername = packet["content"]
