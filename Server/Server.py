@@ -14,7 +14,7 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     # Shared by all clientHandlers:
     activeClients = {}
     validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
-    msgHistory == []
+    msgHistory = []
 
     def transmit(self, message, sender):
         replyPacket = {"timestamp": time.time(), "sender": sender, "response": "message", "content": message}
@@ -32,50 +32,63 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         # Loop that listens for messages from the client
         while True:
             received_string = self.connection.recv(4096)
-            if !received_string:
+            if not received_string:
                 continue
             packet = json.loads(received_string)
             if packet["request"] == "login":
                 newUsername = packet["content"]
-                if newUsername in activeClients:
+                if newUsername in self.activeClients:
                     replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "error", "content": "Username already taken!"}
                     self.connection.send(json.dumps(replyPacket))
                 else:
                     valid = True
                     for letter in newUsername:
-                        if letter not in validChars:
+                        if letter not in self.validChars:
                             valid = False
                             break
 
                     if valid:
+                        print "Valid username " + newUsername
                         self.username = newUsername
-                        activeClients[self.username] = self
-                        replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "history", "content": msgHistory}
+                        self.activeClients[self.username] = self
+                        replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "history", "content": self.msgHistory}
                         self.connection.send(json.dumps(replyPacket))
                     else:
                         replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "error", "content": "Invalid username!"}
                         self.connection.send(json.dumps(replyPacket))
-            
-            else if packet["request"] == "logout":
-                del activeClients[self.username]
+
+            elif packet["request"] == "help":
+                print "Sending help message"
+                helpMsg = "Some info"
+                replyPacket = {"timestamp": time.time(), "sender": "", "response": "info", "content": helpMsg}
+                self.connection.send(json.dumps(replyPacket))
+
+            if self.username not in self.activeClients:
+                print "Not logged in"
+                break
+
+            elif packet["request"] == "logout":
+                print "Logging out"
+                del self.activeClients[self.username]
                 del self
 
-            else if packet["request"] == "msg":
-                msgHistory.append(self.username + ": " + packet["content"])
-                for client in activeClients:
-                    activeClients[client].transmit( packet["content"], self.username )
+            elif packet["request"] == "msg":
+                print "Broadcasting message to active clients: " + packet["content"]
+                self.msgHistory.append(self.username + ": " + packet["content"])
+                for client in self.activeClients:
+                    self.activeClients[client].transmit( packet["content"], self.username )
 
-            else if packet["request"] == "names":
+            elif packet["request"] == "names":
+                print "Sending list of active usernames: "
                 usernames = []
-                for client in activeClients:
+                for client in self.activeClients:
                     usernames.append(client)
+                    print client
+
                 replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "info", "content": usernames}
                 self.connection.send(json.dumps(replyPacket))
                 
-            else if packet["request"] == "help":
-                helpMsg = "Some info"
-                replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "info", "content": helpMsg}
-                self.connection.send(json.dumps(replyPacket))
+
 
             # TODO: Add handling of received payload from client
 
@@ -97,7 +110,7 @@ if __name__ == "__main__":
 
     No alterations is necessary
     """
-    HOST, PORT = 'localhost', 9998
+    HOST, PORT = '', 9996
     print 'Server running...'
 
     # Set up and initiate the TCP server
