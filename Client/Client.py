@@ -29,13 +29,12 @@ class Client:
 	# TODO: Finish init process with necessary code
 
 	def login(self):
-		print'Trying to connect'
 		self.connection.connect((self.host, self.server_port))
+		print "Connection received"
 		loged_in = False
 		while not loged_in:
 			username = raw_input("Enter username: ")
-			login_dict = {'request': 'login', 'content': username} #Skal man bruke <> eller '' ? 
-			print'Sending json msg'
+			login_dict = {'request': 'login', 'content': username} 
 			json_login = json.dumps(login_dict)
 			self.connection.send(json_login)
 
@@ -45,7 +44,6 @@ class Client:
 				loged_in = True
 				print "Successful login"
 				print login_response['content']
-
 		self.msgListener = MessageListener(self, self.connection)
 		self.msgListener.start()
 		time.sleep(0.1)
@@ -54,16 +52,12 @@ class Client:
 
 	def run(self):
 	# Initiate the connection to the server
-		# self.msgListener = MessageListener(self, self.connection)
-		# self.msgListener.start()
-		# time.sleep(1)
-		# self.msgListener.run()
 
 		while True:
 			request_from_user = raw_input("Type request: ")
 			# from_user_list = from_user.split()
-
-			if request_from_user == 'names':
+			loggedIn = False
+			if request_from_user == 'names' and loggedIn:
 				payload_dict = {'request': 'names', 'content': None}
 				json_payload= json.dumps(payload_dict)
 				self.connection.send(json_payload)
@@ -72,7 +66,7 @@ class Client:
 				payload_dict = {'request': 'help', 'content': None}
 				json_payload= json.dumps(payload_dict)
 				self.connection.send(json_payload)
-			elif request_from_user == 'logout':
+			elif request_from_user == 'logout' and loggedIn:
 				payload_dict = {'request': 'logout', 'content': None}
 				json_payload = json.dumps(payload_dict)
 				self.connection.send(json_payload)
@@ -85,6 +79,7 @@ class Client:
 				self.connection.send(json_payload)
 			elif request_from_user == 'login':
 				self.login()
+				loggedIn = True
 			else:
 				print 'invalid input'
 			time.sleep(0.5)
@@ -114,6 +109,6 @@ if __name__ == '__main__':
 	No alterations is necessary
 	"""
 
-	client = Client('78.91.71.70', 9982)
+	client = Client('78.91.71.70', 9981)
 	client.run()
 
