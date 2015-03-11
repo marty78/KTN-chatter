@@ -25,12 +25,13 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         This method handles the connection between a client and the server.
         """
         self.username = ""
+        self.active = True
         self.ip = self.client_address[0]
         self.port = self.client_address[1]
         self.connection = self.request
         print 'Hello ', self.ip, '!\n'
         # Loop that listens for messages from the client
-        while True:
+        while self.active:
             received_string = self.connection.recv(4096)
             if not received_string:
                 continue
@@ -64,13 +65,20 @@ class ClientHandler(SocketServer.BaseRequestHandler):
                 self.connection.send(json.dumps(replyPacket))
 
             if self.username not in self.activeClients:
+                replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "error", "content": "Not logged in!"}
+                self.connection.send(json.dumps(replyPacket))
                 print "Not logged in"
+                self.active = False
+                del self.activeClients[self.username]
+                self.connection.close()
                 break
 
             elif packet["request"] == "logout":
                 print "Logging out"
+                self.active = False
                 del self.activeClients[self.username]
-                del self
+                self.connection.close()
+                #del self
 
             elif packet["request"] == "msg":
                 print "Broadcasting message to active clients: " + packet["content"]
@@ -110,7 +118,7 @@ if __name__ == "__main__":
 
     No alterations is necessary
     """
-    HOST, PORT = '', 9996
+    HOST, PORT = '', 9982
     print 'Server running...'
 
     # Set up and initiate the TCP server
