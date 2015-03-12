@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import SocketServer
-import json, time
+import json, time, datetime
 
 class ClientHandler(SocketServer.BaseRequestHandler):
     """
@@ -16,8 +16,8 @@ class ClientHandler(SocketServer.BaseRequestHandler):
     validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
     msgHistory = []
 
-    def transmit(self, message, sender):
-        replyPacket = {"timestamp": time.time(), "sender": sender, "response": "message", "content": message}
+    def transmit(self, timeStamp,  message, sender):
+        replyPacket = {"timestamp": timeStamp, "sender": sender, "response": "message", "content": message}
         self.connection.send(json.dumps(replyPacket))
 
     def handle(self):
@@ -31,15 +31,17 @@ class ClientHandler(SocketServer.BaseRequestHandler):
         self.connection = self.request
         print 'Hello ', self.ip, '!\n'
         # Loop that listens for messages from the client
-        while self.active:
+        while True:
             received_string = self.connection.recv(4096)
             if not received_string:
+                time.sleep(0.001)
                 continue
             packet = json.loads(received_string)
+            timeStamp = datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
             if packet["request"] == "login":
                 newUsername = packet["content"]
                 if newUsername in self.activeClients:
-                    replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "error", "content": "Username already taken!"}
+                    replyPacket = {"timestamp": timeStamp, "sender": newUsername, "response": "error", "content": "Username already taken!"}
                     self.connection.send(json.dumps(replyPacket))
                 else:
                     valid = True
@@ -52,39 +54,40 @@ class ClientHandler(SocketServer.BaseRequestHandler):
                         print "Valid username " + newUsername
                         self.username = newUsername
                         self.activeClients[self.username] = self
-                        replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "history", "content": self.msgHistory}
+                        replyPacket = {"timestamp": timeStamp, "sender": newUsername, "response": "history", "content": self.msgHistory}
                         self.connection.send(json.dumps(replyPacket))
                     else:
-                        replyPacket = {"timestamp": time.time(), "sender": newUsername, "response": "error", "content": "Invalid username!"}
+                        replyPacket = {"timestamp": timeStamp, "sender": newUsername, "response": "error", "content": "Invalid username!"}
                         self.connection.send(json.dumps(replyPacket))
 
             elif packet["request"] == "help":
                 print "Sending help message"
                 helpMsg = "Some info"
-                replyPacket = {"timestamp": time.time(), "sender": "", "response": "info", "content": helpMsg}
+                replyPacket = {"timestamp": timeStamp, "sender": "", "response": "info", "content": helpMsg}
                 self.connection.send(json.dumps(replyPacket))
 
-            if self.username not in self.activeClients:
-                replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "error", "content": "Not logged in!"}
+            elif self.username not in self.activeClients:
+                replyPacket = {"timestamp": timeStamp, "sender": self.username, "response": "error", "content": "Not logged in!"}
                 self.connection.send(json.dumps(replyPacket))
                 print "Not logged in"
-                self.active = False
-                del self.activeClients[self.username]
-                self.connection.close()
-                break
+                # del self.activeClients[self.username]
+                # self.connection.close()
+                
 
             elif packet["request"] == "logout":
                 print "Logging out"
+                for client in self.activeClients:
+                    self.activeClients[client].transmit(timeStamp, self.username + " logged out.", self.username )
                 self.active = False
                 del self.activeClients[self.username]
-                self.connection.close()
+                self.username = None
                 #del self
 
             elif packet["request"] == "msg":
                 print "Broadcasting message to active clients: " + packet["content"]
-                self.msgHistory.append(self.username + ": " + packet["content"])
+                self.msgHistory.append(timeStamp + ": " + self.username + ": " + packet["content"])
                 for client in self.activeClients:
-                    self.activeClients[client].transmit( packet["content"], self.username )
+                    self.activeClients[client].transmit(timeStamp, packet["content"], self.username )
 
             elif packet["request"] == "names":
                 print "Sending list of active usernames: "
@@ -93,13 +96,11 @@ class ClientHandler(SocketServer.BaseRequestHandler):
                     usernames.append(client)
                     print client
 
-                replyPacket = {"timestamp": time.time(), "sender": self.username, "response": "info", "content": usernames}
+                replyPacket = {"timestamp": timeStamp, "sender": self.username, "response": "info", "content": usernames}
                 self.connection.send(json.dumps(replyPacket))
-                
-
-
-            # TODO: Add handling of received payload from client
-
+            else:
+                replyPacket = {"timestamp": timeStamp, "sender": self.username, "response": "error", "content": "Invalid request"}
+                self.connection.send(json.dumps(replyPacket))
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 
     No alterations is necessary
     """
-    HOST, PORT = '', 9982
+    HOST, PORT = '78.91.16.240', 9966
     print 'Server running...'
 
     # Set up and initiate the TCP server
