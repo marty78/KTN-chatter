@@ -22,6 +22,7 @@ class Client:
 
 		#MessageReceiver(Thread)
 		#self.login()
+		self.run()
 		
 
 
@@ -29,10 +30,11 @@ class Client:
 	# TODO: Finish init process with necessary code
 
 	def login(self):
+		print "login-function"
 		self.connection.connect((self.host, self.server_port))
 		print "Connection received"
-		loged_in = False
-		while not loged_in:
+		self.loged_in = False
+		while not self.loged_in:
 			username = raw_input("Enter username: ")
 			login_dict = {'request': 'login', 'content': username} 
 			json_login = json.dumps(login_dict)
@@ -41,7 +43,7 @@ class Client:
 			json_login_response = self.connection.recv(1024)
 			login_response = json.loads(json_login_response)
 			if login_response['response'] == 'history':
-				loged_in = True
+				self.loged_in = True
 				print "Successful login"
 				print login_response['content']
 		self.msgListener = MessageListener(self, self.connection)
@@ -56,8 +58,12 @@ class Client:
 		while True:
 			request_from_user = raw_input("Type request: ")
 			# from_user_list = from_user.split()
-			loggedIn = False
-			if request_from_user == 'names' and loggedIn:
+			self.loged_in = False
+			if request_from_user == 'login':
+				print "login"
+				self.login()
+				#self.loged_in = True
+			elif request_from_user == 'names' and self.loged_in:
 				payload_dict = {'request': 'names', 'content': None}
 				json_payload= json.dumps(payload_dict)
 				self.connection.send(json_payload)
@@ -66,20 +72,17 @@ class Client:
 				payload_dict = {'request': 'help', 'content': None}
 				json_payload= json.dumps(payload_dict)
 				self.connection.send(json_payload)
-			elif request_from_user == 'logout' and loggedIn:
+			elif request_from_user == 'logout' and self.loged_in:
 				payload_dict = {'request': 'logout', 'content': None}
 				json_payload = json.dumps(payload_dict)
 				self.connection.send(json_payload)
 				self.msgListener.logged_in = False
 				self.connection.close()
-			elif request_from_user == 'msg':
+			elif request_from_user == 'msg' and self.loged_in:
 				msg_from_user = raw_input("Type message: ")
 				payload_dict = {'request': 'msg', 'content': msg_from_user}
 				json_payload= json.dumps(payload_dict)
 				self.connection.send(json_payload)
-			elif request_from_user == 'login':
-				self.login()
-				loggedIn = True
 			else:
 				print 'invalid input'
 			time.sleep(0.5)
@@ -109,6 +112,6 @@ if __name__ == '__main__':
 	No alterations is necessary
 	"""
 
-	client = Client('78.91.71.70', 9981)
-	client.run()
+	client = Client('78.91.16.240', 9981)
+	#client.run()
 
