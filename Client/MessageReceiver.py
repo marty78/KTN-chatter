@@ -28,7 +28,6 @@ class MessageListener(Thread):
         # TODO: Finish initialization of MessageReceiver
 
     def run(self):
-        print "Har startet listener"
         # TODO: Make MessageReceiver receive and handle payloads
         while self.logged_in:
             json_msg = self.connection.recv(1024)
@@ -38,16 +37,18 @@ class MessageListener(Thread):
             msg = json.loads(json_msg)
 
             if msg['response'] == 'error': 
-                print 'Something went wrong'
+                print msg['content']
 
             if msg['response'] == 'logout':
-                print 'Loging out'
+                print 'Logging out'
 
             if msg['response'] == 'history':
+                print "History:"
                 print msg['content']
 
             if msg['response'] == 'info':
                 print msg['content']
+
             if msg['response'] == 'message':
                 print msg['content']
 
