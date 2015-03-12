@@ -25,15 +25,11 @@ class MessageListener(Thread):
         self.daemon = True
 
 
-        # TODO: Finish initialization of MessageReceiver
-
     def run(self):
-        # TODO: Make MessageReceiver receive and handle payloads
         while self.logged_in:
             json_msg = self.connection.recv(1024)
             if not json_msg:
                 continue
-            # print json_msg
             msg = json.loads(json_msg)
 
             if msg['response'] == 'error': 

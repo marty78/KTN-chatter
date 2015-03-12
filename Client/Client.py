@@ -21,40 +21,6 @@ class Client:
 		self.loged_in = False
 		self.connection_in_use = False
 		self.msg_listener_started = False
-		#MessageReceiver(Thread)
-		#self.login()
-		self.run()
-		
-
-
-
-	# TODO: Finish init process with necessary code
-
-	def login(self):
-		if not self.connection_in_use:
-			self.connection.connect((self.host, self.server_port))
-			self.connection_in_use = True
-			print "Connection received"
-		#self.loged_in = False
-		while not self.loged_in:
-			username = raw_input("Enter username: ")
-			login_dict = {'request': 'login', 'content': username} 
-			json_login = json.dumps(login_dict)
-			self.connection.send(json_login)
-			time.sleep(0.1)
-			json_login_response = self.connection.recv(1024)
-			login_response = json.loads(json_login_response)
-
-			if login_response['response'] == 'history':
-				self.loged_in = True
-				print "Successful login"
-				print login_response['content']
-		if not msg_listener_started:
-			self.msgListener = MessageListener(self, self.connection)
-			self.msgListener.start()
-			msg_listener_started = True
-			time.sleep(0.1)
-
 
 
 	def run(self):
@@ -69,7 +35,6 @@ class Client:
 
 		while True:
 			request_from_user = raw_input("Type request: ")
-			# from_user_list = from_user.split()
 			if request_from_user == 'login':
 				username = raw_input("Enter username: ")
 				login_dict = {'request': 'login', 'content': username} 
@@ -100,23 +65,6 @@ class Client:
 			time.sleep(0.5)
 
 
-
-
-	
-	# def disconnect(self):
-	# # TODO: Handle disconnection
-	# loged_in = False
-	# pass
-
-	# def receive_message(self, message):
-	# # TODO: Handle incoming message
-	# pass
-
-	# def send_payload(self, data):
-	# # TODO: Handle sending of a payload
-	# pass
-
-
 if __name__ == '__main__':
 	"""
 	This is the main method and is executed when you type "python Client.py"
@@ -124,6 +72,6 @@ if __name__ == '__main__':
 	No alterations is necessary
 	"""
 
-	client = Client('78.91.16.240', 9978)
-	#client.run()
+	client = Client('78.91.66.144', 9998)
+	client.run()
 
